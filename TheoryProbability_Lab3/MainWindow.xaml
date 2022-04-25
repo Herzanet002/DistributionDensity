@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TheoryProbability_Lab3"
         xmlns:lc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
-        mc:Ignorable="d"
-        Title="Оценка плотности распределения" Height="600" Width="1000">
+        mc:Ignorable="d" WindowStartupLocation="CenterScreen"
+        Title="Оценка плотности распределения" Height="650" Width="1300"
+        MinWidth="600" MinHeight="400" Background="#FFD2DEFF">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
@@ -17,59 +18,84 @@
         </Grid.ColumnDefinitions>
         <Grid >
             <Grid.RowDefinitions>
-                <RowDefinition Height="160"/>
+                <RowDefinition Height="200"/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
             <Grid Margin="10" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
-                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="75"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
-
+                    <RowDefinition/>
                 </Grid.RowDefinitions>
                 <Label Content="Выборка:" VerticalContentAlignment="Center" />
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SamplingCount, Mode=TwoWay}" VerticalContentAlignment="Center" 
                          MinWidth="60" Height="26"  />
-                <Label Grid.Column="0" Grid.Row="1" Content="Отклонение:" VerticalContentAlignment="Center" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StDev, Mode=TwoWay}" VerticalContentAlignment="Center"
-                         MinWidth="60" Height="26" />
-                <Label Grid.Column="0" Grid.Row="2" Content="Мат.ожидание:" VerticalContentAlignment="Center" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Mean, Mode=TwoWay}" VerticalContentAlignment="Center"
-                          MinWidth="60" Height="26"/>
+
+                <Label Grid.Column="0" Grid.Row="1" Content="Параметр A:" VerticalContentAlignment="Center" IsEnabled="{Binding IsSecondParamAvailable}"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ParamA, Mode=TwoWay}" VerticalContentAlignment="Center"
+                         MinWidth="60" Height="26" IsEnabled="{Binding IsSecondParamAvailable}" />
+
+                <Label Grid.Column="0" Grid.Row="2" Content="Параметр B:" VerticalContentAlignment="Center" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ParamB, Mode=TwoWay}"   VerticalContentAlignment="Center"
+                         MinWidth="60" Height="26"/>
+
                 <Label Grid.Column="0" Grid.Row="3" Content="Кол-во интервалов:" VerticalContentAlignment="Center" />
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BeansCount, Mode=TwoWay}" VerticalContentAlignment="Center"
                           MinWidth="60" Height="26" />
+
+                <Label Grid.Column="0" Grid.Row="4" Content="Размытость:" VerticalContentAlignment="Center" />
+                <TextBox Grid.Row="4" Grid.Column="1" VerticalContentAlignment="Center"
+                         MinWidth="60" Height="26" Text="{Binding H, Mode=TwoWay}" />
             </Grid>
 
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
                     <RowDefinition Height="50"/>
                     <RowDefinition Height="50"/>
                 </Grid.RowDefinitions>
-                <ComboBox  Grid.Row="0" Height="26" SelectedIndex="{Binding ComboboxSelectedIndex, 
+                <CheckBox Grid.Row="0"  VerticalAlignment="Center" Margin="15,0,15,0" IsChecked="{Binding IsKdEPlotBuild, Mode=TwoWay}" >
+                    <TextBlock Text="Оценка Розенблатта-Парзена"/>
+                </CheckBox>
+                <CheckBox Grid.Row="1"  VerticalAlignment="Center" Margin="15,0,15,0" IsChecked="{Binding IsPointDensityBuild, Mode=TwoWay}" >
+                    <TextBlock Text="Отображать плотность точек"/>
+                </CheckBox>
+                <ComboBox Grid.Row="2" Height="28" VerticalContentAlignment="Center" SelectedIndex="{Binding ComboboxSelectedIndex, 
                     Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,0,15,0">
                     <ComboBoxItem Content="Нормальное распределение"/>
                     <ComboBoxItem Content="Равномерное распределение"/>
                     <ComboBoxItem Content="Экспоненциальное распределение"/>
                 </ComboBox>
-                <Button Grid.Row="1" Content="Построить" Grid.Column="0" Width="100" Height="30"
+                <Button Grid.Row="3" Content="Построить" Grid.Column="0" Width="100" Height="30"
                         Command="{Binding CreateNormalDistributionPlotCommand}" ></Button>
             </Grid>
         </Grid>
-        <lc:CartesianChart Grid.Column="1" x:Name="CartesianChart" Margin="20"
-                           Series="{Binding SeriesCollectionList, UpdateSourceTrigger=PropertyChanged}" Zoom="Xy">
-            
+        
+        <lc:CartesianChart Grid.Column="1" x:Name="CartesianChart" Margin="20" Zoom="Xy" 
+                           Series="{Binding SeriesCollectionList, UpdateSourceTrigger=PropertyChanged}">
             <lc:CartesianChart.AxisY>
-                <lc:Axis LabelFormatter="{Binding YFormatter}" Title="Частота" MinValue="0"></lc:Axis>
+                <lc:Axis LabelFormatter="{Binding YFormatter}" Title="Частота" MinValue="0"
+                         MaxValue="{Binding MaxValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="Black" FontSize="14">
+                    <lc:Axis.Separator>
+                        <lc:Separator Stroke="#FF646464" StrokeThickness=".8" StrokeDashArray="8"/>
+                    </lc:Axis.Separator>
+                </lc:Axis>
             </lc:CartesianChart.AxisY>
             <lc:CartesianChart.AxisX>
-                <lc:Axis Title="Выборка" LabelFormatter="{Binding YFormatter}"></lc:Axis>
+                <lc:Axis Title="Выборка" LabelFormatter="{Binding YFormatter}" Foreground="Black" FontSize="14">
+                    <lc:Axis.Separator>
+                        <lc:Separator Stroke="#FF646464" StrokeThickness=".8"  StrokeDashArray="8"/>
+                    </lc:Axis.Separator>
+                </lc:Axis>
             </lc:CartesianChart.AxisX>
+
         </lc:CartesianChart>
     </Grid>
 </Window>
