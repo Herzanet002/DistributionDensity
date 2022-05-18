@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TheoryProbability_Lab3"
         xmlns:lc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d" WindowStartupLocation="CenterScreen"
-        Title="Оценка плотности распределения" Height="650" Width="1300"
+        Title="Оценка плотности распределения" Height="700" Width="1300"
         MinWidth="600" MinHeight="400">
     <Window.DataContext>
         <local:MainWindowViewModel/>
@@ -60,14 +60,21 @@
                     <RowDefinition Height="30"/>
                     <RowDefinition Height="40"/>
                     <RowDefinition Height="40"/>
-                    <RowDefinition Height="50"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition />
+               
                 </Grid.RowDefinitions>
+                <Separator HorizontalAlignment="Stretch" Margin="10,0,10,0"  Grid.Row="0" VerticalAlignment="Top"/>
                 <CheckBox Grid.Row="0"  VerticalAlignment="Center" Margin="15,0,15,0" IsChecked="{Binding IsKdEPlotBuild, Mode=TwoWay}" >
                     <TextBlock Text="Оценка Розенблатта-Парзена"/>
                 </CheckBox>
                 <CheckBox Grid.Row="1"  VerticalAlignment="Center" Margin="15,0,15,0" IsChecked="{Binding IsPointDensityBuild, Mode=TwoWay}" >
                     <TextBlock Text="Отображать плотность точек"/>
                 </CheckBox>
+                
                 <ComboBox Grid.Row="2" Height="28" VerticalContentAlignment="Center" SelectedIndex="{Binding DistributionSelectedIndex, 
                     Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="15,0,15,0">
                     <ComboBoxItem Content="Нормальное распределение"/>
@@ -80,9 +87,15 @@
                     <ComboBoxItem Content="Епанечниково ядро"/>
                     <ComboBoxItem Content="Логистическое ядро"/>
                 </ComboBox>
-                <Button Grid.Row="4" Content="Построить" Grid.Column="0" Width="100" Height="30"
-                        Command="{Binding CreateNormalDistributionPlotCommand}" ></Button>
-               
+                <Separator HorizontalAlignment="Stretch" Margin="10,0,10,5"  Grid.Row="4" VerticalAlignment="Top"/>
+                <Button Grid.Row="5" Content="Текущая выборка" Grid.Column="0" Width="110" Height="30"
+                        Command="{Binding CreateDistributionGraphOnCurrentCommand}" Background="#7FA2D1F6" ></Button>
+
+                <Button Grid.Row="6" Content="Новая выборка" Grid.Column="0" Width="110" Height="30"
+                        Command="{Binding CreateDistributionGraphCommand}" Background="#7FCF9191" ></Button>
+                <ListView Grid.Row="8" Margin="10" Width="Auto" Height="180" VerticalAlignment="Top" ItemsSource="{Binding SamplingInfoList, UpdateSourceTrigger=PropertyChanged}">
+                </ListView>
+
             </Grid>
         </Grid>
 

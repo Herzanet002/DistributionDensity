@@ -8,13 +8,13 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using mathnet = MathNet.Numerics;
 
 namespace TheoryProbability_Lab3
 {
     public class MainWindowViewModel : ViewModel
     {
         public Func<double, string> YFormatter { get; set; }
-        private readonly Random _rand = new();
         private static List<double>? _frequencies;
         private static List<double>? _randoms;
         private static string? _samplingCount;
@@ -31,11 +31,12 @@ namespace TheoryProbability_Lab3
         private static bool _isSecondParamAvailable;
         private static double _maxValue;
         private static Visibility _isOptionalGraphVisible;
+        private static List<string> _samplingInfoList;
 
         private const double PADDING = 0.02;
 
-        public ICommand CreateNormalDistributionPlotCommand { get; set; } // Команда обработки действия по нажатию на кнопку построения графика по новой выборке
-        //public ICommand CreateNormalDistributionPlotCommand { get; set; } // Команда обработки действия по нажатию на кнопку построения графика по текущей выборке
+        public ICommand CreateDistributionGraphCommand { get; set; } // Команда обработки действия по нажатию на кнопку построения графика по новой выборке
+        public ICommand CreateDistributionGraphOnCurrentCommand { get; set; } // Команда обработки действия по нажатию на кнопку построения графика по текущей выборке
         public string? SamplingCount // Объем выборки
         {
             get => _samplingCount;
@@ -61,7 +62,6 @@ namespace TheoryProbability_Lab3
             get => _h;
             set => Set(ref _h, value);
         }
-
         public double MaxValue // Максимальное значение диапазона по оси ординат
         {
             get => _maxValue;
@@ -100,7 +100,6 @@ namespace TheoryProbability_Lab3
             get => _kernelSelectedIndex;
             set => Set(ref _kernelSelectedIndex, value);
         }
-
         public SeriesCollection? MainSeriesCollectionList // Коллекция серий в LiveChart
         {
             get => _mainSeriesCollectionList;
@@ -111,13 +110,50 @@ namespace TheoryProbability_Lab3
             get => _optionalSeriesCollectionList;
             set => Set(ref _optionalSeriesCollectionList, value);
         }
-
         public Visibility IsOptionalGraphVisible
         {
             get => _isOptionalGraphVisible;
             set => Set(ref _isOptionalGraphVisible, value);
         }
-        private void CreateDistributionPlot_Executed(object obj)
+        public List<string> SamplingInfoList
+        {
+            get => _samplingInfoList;
+            set => Set(ref _samplingInfoList, value);
+        } 
+
+        private void CreateDistributionGrapOnCurrent_Executed(object obj)
+        {
+            if (SamplingCount == null || ParamA == null || ParamB == null || BeansCount == null || H == null) return;
+
+            MainSeriesCollectionList?[2].Values.Clear();
+
+            switch (DistributionSelectedIndex)
+            {
+                case 0: // Нормальное распределение
+                    CreateNormalDistributionGraph(int.Parse(SamplingCount), double.Parse(ParamA),
+                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount),
+                        double.Parse(H.Replace(",","."), NumberStyles.Any, CultureInfo.InvariantCulture), true);
+                    break;
+
+                case 1: // Равномерное распределение
+                    CreateUniformDistributionGraph(int.Parse(SamplingCount), double.Parse(ParamA),
+                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount),
+                        double.Parse(H.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture), true);
+                    break;
+
+                case 2: // Экспоненциальное распределение
+                    if (double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture) <= 0) MessageBox.Show("Введите положительное число в качестве параметра!");
+                    else
+                    {
+                        CreateExponentialDistributionGraph(int.Parse(SamplingCount),
+                            double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount),
+                            double.Parse(H.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture), true);
+                    }
+                    break;
+            }
+        }
+
+        private void CreateDistributionGraph_Executed(object obj)
         {
             if (SamplingCount == null || ParamA == null || ParamB == null || BeansCount == null || H == null) return;
 
@@ -130,12 +166,14 @@ namespace TheoryProbability_Lab3
             {
                 case 0: // Нормальное распределение
                     CreateNormalDistributionGraph(int.Parse(SamplingCount), double.Parse(ParamA),
-                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount), double.Parse(H, NumberStyles.Any, CultureInfo.InvariantCulture));
+                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount), 
+                        double.Parse(H.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture), false);
                     break;
 
                 case 1: // Равномерное распределение
                     CreateUniformDistributionGraph(int.Parse(SamplingCount), double.Parse(ParamA),
-                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount), double.Parse(H, NumberStyles.Any, CultureInfo.InvariantCulture));
+                        double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount),
+                        double.Parse(H.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture), false);
                     break;
 
                 case 2: // Экспоненциальное распределение
@@ -143,7 +181,8 @@ namespace TheoryProbability_Lab3
                     else
                     {
                         CreateExponentialDistributionGraph(int.Parse(SamplingCount),
-                            double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount), double.Parse(H, NumberStyles.Any, CultureInfo.InvariantCulture));
+                            double.Parse(ParamB, NumberStyles.Any, CultureInfo.InvariantCulture), int.Parse(BeansCount),
+                            double.Parse(H.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture), false);
                     }
                     break;
             }
@@ -164,7 +203,8 @@ namespace TheoryProbability_Lab3
             IsSecondParamAvailable = true;
             IsOptionalGraphVisible = Visibility.Collapsed;
 
-            CreateNormalDistributionPlotCommand = new Command(CreateDistributionPlot_Executed, _ => true);
+            CreateDistributionGraphCommand = new Command(CreateDistributionGraph_Executed, _ => true);
+            CreateDistributionGraphOnCurrentCommand = new Command(CreateDistributionGrapOnCurrent_Executed, _ => true);
 
             MainSeriesCollectionList.Add(new ColumnSeries
             {
@@ -174,14 +214,12 @@ namespace TheoryProbability_Lab3
                 StrokeThickness = 1.5
             });
 
-
             MainSeriesCollectionList.Add(new LineSeries
             {
                 Values = new ChartValues<ObservablePoint>(),
                 StrokeThickness = 3,
-                
-
             });
+
             MainSeriesCollectionList.Add(new LineSeries
             {
                 Values = new ChartValues<ObservablePoint>(),
@@ -189,6 +227,7 @@ namespace TheoryProbability_Lab3
                 Stroke = new SolidColorBrush(Colors.DarkSlateBlue),
                 Fill = new SolidColorBrush(Color.FromArgb(30, 10, 54, 166))
             });
+
             OptionalSeriesCollectionList.Add(new LineSeries
             {
                 Values = new ChartValues<ObservablePoint>(),
@@ -200,33 +239,65 @@ namespace TheoryProbability_Lab3
             });
         }
 
+        private void GetSamplingInfo(double hi, double moda, double maxPvalue, double degOfFreedom)
+        {
+            if (_randoms == null) return;
+
+            SamplingInfoList = new List<string>();
+            var randoms = _randoms;
+            randoms.Sort();
+            var median = MathNet.Numerics.Statistics.Statistics.Median(randoms);
+
+            var sampleAverage = randoms.Sum()/randoms.Count;
+            var stDev = MathNet.Numerics.Statistics.Statistics.StandardDeviation(randoms);
+
+            var range = randoms.Max() - randoms.Min();
+
+            var lowerConfBound = sampleAverage - 1.96 * (stDev / Math.Sqrt(randoms.Count));
+            var upperConfBound = sampleAverage + 1.96 * stDev / Math.Sqrt(randoms.Count);
+
+
+            SamplingInfoList = new List<string>
+            {
+                $"Выборочное среднее: {Math.Round(sampleAverage, 4)}",
+                $"Медиана: {Math.Round(median, 4)}",
+                $"Дисперсия: {Math.Round(stDev, 4)}",
+                $"Размах: {Math.Round(range, 4)}",
+                $"Мода: {Math.Round(moda, 4)}",
+                $"Довер. интервал: {Math.Round(lowerConfBound, 4)} ± {Math.Round(upperConfBound, 4)}",
+                $"Хи-квадрат: {Math.Round(hi, 4)}",
+                $"Критическая точка хи-распределения при уровне значимости 0,95 и кол-ве степеней свободы = {degOfFreedom}, равна: {Math.Round(maxPvalue,4)}"
+            };
+            
+        }
 
         #region Нормальное распределение
-        private double GenerateNormalDistributionRandomValue(double mean, double stDev) // Генерация случайного числа по нормальному закону распределения
+        private void CreateNormalDistributionGraph(int samplingCount, double mean, double stDev, int beansCount, double h, bool inCurrent) // Построение графика нормального распределения
         {
-            var u1 = _rand.NextDouble();
-            var u2 = _rand.NextDouble();
-            var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-            var randNormal = mean + stDev * randStdNormal;
-            return randNormal;
-        }
-        private void CreateNormalDistributionGraph(int samplingCount, double mean, double stDev, int beansCount, double h) // Построение графика
-        {
-            _frequencies = new List<double>(new double[beansCount]);
-            _randoms = new List<double>(new double[samplingCount]);
-
-            for (var i = 0; i < samplingCount; i++) //выборка по нормальному
-            {
-                _randoms[i] = GenerateNormalDistributionRandomValue(mean, stDev);
-            }
-            var yMax = 0.0;
-            // _randoms.Sort();
             var min3Sigm = mean - 3 * stDev;
             var max3Sigm = mean + 3 * stDev;
             var incr = Math.Abs(max3Sigm - min3Sigm) / beansCount;
+            if (inCurrent)
+            {
+                if(IsKdEPlotBuild)
+                    KernelDensityGraphBuild(min3Sigm, max3Sigm, incr, h, samplingCount);
+                return;
+            }
+
+            _frequencies = new List<double>(new double[beansCount]);
+            _randoms = new List<double>(new double[samplingCount]);
+
+            for (var i = 0; i < samplingCount; i++) 
+            {
+                _randoms[i] = Calculus.GenerateNormalDistributionRandomValue(mean, stDev);
+            }
+
+            var yMax = 0.0;
 
             var vals = new List<double>();
-
+            var hiSquare = 0.0;
+            var moda = 0.0;
+            var maxFreq = 0.0;
             for (var i = min3Sigm; i <= max3Sigm; i += incr)
             {
                 var valsCount = vals.Count;
@@ -236,24 +307,31 @@ namespace TheoryProbability_Lab3
 
                 MainSeriesCollectionList?[0].Values.Add(new ObservablePoint(i, _frequencies[valsCount]));
 
-                var normalDensityRandomValue = incr * NormalDistributionDensityFunction(stDev, mean, i);
-
+                var normalDensityRandomValue = incr * Calculus.NormalDistributionDensityFunction(stDev, mean, i);
+                
                 MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(i, normalDensityRandomValue));
 
                 if (valsCount == beansCount - 1)
-                    MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(i + incr, incr * NormalDistributionDensityFunction(stDev, mean, i + incr)));
+                    MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(i + incr, incr * Calculus.NormalDistributionDensityFunction(stDev, mean, i + incr)));
 
                 yMax = normalDensityRandomValue > yMax ? normalDensityRandomValue : yMax;
                 vals.Add(i);
-            }
 
+                hiSquare += Math.Pow(incr*Calculus.NormalDistributionDensityFunction(stDev, mean, i) - _frequencies[valsCount], 2) /
+                   incr* Calculus.NormalDistributionDensityFunction(stDev, mean, i);
+
+                if (!(_frequencies[valsCount] > maxFreq)) continue;
+                maxFreq = _frequencies[valsCount];
+                moda = i;
+            }
+            var maxPvalue = mathnet.Distributions.ChiSquared.InvCDF(beansCount-3, 0.05);
+            GetSamplingInfo(hiSquare, moda, maxPvalue, beansCount-3);
 
 
             MaxValue = yMax > _frequencies.Max() ? yMax + PADDING : _frequencies.Max() + PADDING;
             if (IsPointDensityBuild)
             {
                 _randoms.ForEach(rand => OptionalSeriesCollectionList?[0].Values.Add(new ObservablePoint(rand, 0)));
-
             }
 
 
@@ -263,37 +341,30 @@ namespace TheoryProbability_Lab3
 
         }
 
-
-        private static double NormalDistributionDensityFunction(double sigm, double mean, double x) // Плотность нормального распределния
-        {
-            return (1 / (sigm * Math.Sqrt(2 * Math.PI))) * Math.Pow(Math.E, (-1 * ((Math.Pow(x - mean, 2)) / (2 * sigm * sigm))));
-        }
-
         #endregion
 
 
         #region Равномерное распределение
-        private double GenerateUniformDistributionRandomValue(double start, double stop) // Генерация случайного числа по равномерному закону распределения
-        {
-            return start + _rand.NextDouble() * (stop - start);
-        }
-        private void CreateUniformDistributionGraph(int samplingCount, double a, double b, int beansCount, double h) // Построение графика
+        
+        private void CreateUniformDistributionGraph(int samplingCount, double a, double b, int beansCount, double h, bool inCurrent) // Построение графика
         {
             _frequencies = new List<double>(new double[beansCount]);
             _randoms = new List<double>(new double[samplingCount]);
 
             for (var i = 0; i < samplingCount; i++)
             {
-                _randoms[i] = GenerateUniformDistributionRandomValue(a, b);
+                _randoms[i] = Calculus.GenerateUniformDistributionRandomValue(a, b);
             }
 
             _randoms.Sort();
-            var minVal = a;
-            var maxVal = b;
-            var incr = Math.Abs(maxVal - minVal) / beansCount;
-
+            var incr = Math.Abs(b - a) / beansCount;
+            var yValue = 1 / (b - a);
             var vals = new List<double>();
-            for (var i = minVal; i <= maxVal; i += incr)
+            var yMax = 0.0;
+            var maxFreq = 0.0;
+            var moda = 0.0;
+            var hiSquare = 0.0;
+            for (var i = a; i <= b; i += incr)
             {
                 var valsCount = vals.Count;
                 if (valsCount >= beansCount) break;
@@ -302,25 +373,26 @@ namespace TheoryProbability_Lab3
 
                 MainSeriesCollectionList?[0].Values.Add(new ObservablePoint(i, _frequencies[valsCount]));
                 vals.Add(i);
-
-            }
-            var yMax = 0.0;
-            vals.ForEach(v =>
-            {
-                var yValue = 1 / (maxVal - minVal);
-                MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(v, yValue));
+                MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(i, yValue));
                 yMax = yValue > yMax ? yValue : yMax;
-            });
+                hiSquare += Math.Pow(yValue -_frequencies[valsCount], 2) / yValue;
+                if (!(_frequencies[valsCount] > maxFreq)) continue;
+                maxFreq = _frequencies[valsCount];
+                moda = i;
+            }
+            
             MaxValue = yMax > _frequencies.Max() ? yMax + PADDING : _frequencies.Max() + PADDING;
 
             if (IsPointDensityBuild)
             {
                 _randoms.ForEach(rand => OptionalSeriesCollectionList?[0].Values.Add(new ObservablePoint(rand, 0)));
             }
+            var maxPvalue = mathnet.Distributions.ChiSquared.InvCDF(beansCount - 3, 0.05);
+            GetSamplingInfo(hiSquare, moda, maxPvalue, beansCount-3);
 
             if (!IsKdEPlotBuild) return;
 
-            KernelDensityGraphBuild(minVal, maxVal, incr, h, samplingCount);
+            KernelDensityGraphBuild(a, b, incr, h, samplingCount);
 
         }
 
@@ -329,28 +401,26 @@ namespace TheoryProbability_Lab3
 
 
         #region Экспоненциальное распределение
-        private double GenerateExponentialDistributionRandomValue(double lambda) // Генерация случайного числа по экспоненциальному закону распределения
-        {
-            var uniformValue = _rand.NextDouble();
-            return (-1 / lambda) * Math.Log(1 - uniformValue);
-        }
-        private void CreateExponentialDistributionGraph(int samplingCount, double lambda, int beansCount, double h) // Построение графика
+        
+        private void CreateExponentialDistributionGraph(int samplingCount, double lambda, int beansCount, double h, bool inCurrent) // Построение графика
         {
             _frequencies = new List<double>(new double[beansCount]);
             _randoms = new List<double>(new double[samplingCount]);
 
             for (var i = 0; i < samplingCount; i++)
             {
-                _randoms[i] = GenerateExponentialDistributionRandomValue(lambda);
+                _randoms[i] = Calculus.GenerateExponentialDistributionRandomValue(lambda);
             }
 
             _randoms.Sort();
             var minVal = _randoms[0];
             var maxVal = _randoms[^1];
             var incr = Math.Abs(maxVal - minVal) / beansCount;
-
-
+            var maxFreq = 0.0;
+            var moda = 0.0;
+            var hiSquare = 0.0;
             var vals = new List<double>();
+            var yMax = 0.0;
             for (var i = minVal; i <= maxVal; i += incr)
             {
                 var valsCount = vals.Count;
@@ -359,18 +429,20 @@ namespace TheoryProbability_Lab3
                 _frequencies[valsCount] = count;
                 MainSeriesCollectionList?[0].Values.Add(new ObservablePoint(i, _frequencies[valsCount]));
                 vals.Add(i);
+                var yValue = Calculus.ExponentialDistributionDensityFunction(lambda, i);
 
-            }
-            var yMax = 0.0;
-
-            vals.ForEach(v =>
-            {
-                var yValue = ExponentialDistributionDensityFunction(lambda, v);
-
-                MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(v, yValue));
+                MainSeriesCollectionList?[1].Values.Add(new ObservablePoint(i, yValue));
                 yMax = yValue > yMax ? yValue : yMax;
-            });
+                hiSquare += Math.Pow(Calculus.ExponentialDistributionDensityFunction(lambda, i) - 
+                    _frequencies[valsCount], 2) / Calculus.ExponentialDistributionDensityFunction(lambda, i);
+                if (!(_frequencies[valsCount] > maxFreq)) continue;
+                maxFreq = _frequencies[valsCount];
+                moda = i;
+            }
+            
             MaxValue = yMax > _frequencies.Max() ? yMax + PADDING : _frequencies.Max() + PADDING;
+            var maxPvalue = mathnet.Distributions.ChiSquared.InvCDF(beansCount - 3, 0.05);
+            GetSamplingInfo(hiSquare, moda, maxPvalue, beansCount - 3);
             if (IsPointDensityBuild)
             {
                 _randoms.ForEach(rand => OptionalSeriesCollectionList?[0].Values.Add(new ObservablePoint(rand, 0)));
@@ -380,12 +452,7 @@ namespace TheoryProbability_Lab3
             KernelDensityGraphBuild(minVal, maxVal, incr, h, samplingCount);
        
         }
-        private static double ExponentialDistributionDensityFunction(double lambda, double x) // Плотность жкспоненциального распределения
-        {
-            return lambda * Math.Exp(-lambda * x);
-        }
-
-
+        
         #endregion
         private void KernelDensityGraphBuild(double min, double max, double incr, double h, double samplingCount)
         {
@@ -397,7 +464,7 @@ namespace TheoryProbability_Lab3
                 case 0:
                     for (var i = min; i <= upperBound; i += incr)
                     {
-                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => GaussianKernel((i - rand) / h));
+                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => Calculus.GaussianKernel((i - rand) / h));
                         MainSeriesCollectionList?[2].Values.Add(new ObservablePoint(i, multiplyKoeff * kde));
                     }
                     break;
@@ -405,7 +472,7 @@ namespace TheoryProbability_Lab3
                 case 1:
                     for (var i = min; i <= upperBound; i += incr)
                     {
-                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => EpanechnikovKernel((i - rand) / h));
+                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => Calculus.EpanechnikovKernel((i - rand) / h));
                         MainSeriesCollectionList?[2].Values.Add(new ObservablePoint(i, multiplyKoeff * kde));
                     }
                     break;
@@ -413,23 +480,12 @@ namespace TheoryProbability_Lab3
                 case 2:
                     for (var i = min; i <= upperBound; i += incr)
                     {
-                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => LogisticKernel((i - rand) / h));
+                        var kde = (1.0 / samplingCount / h) * _randoms.Sum(rand => Calculus.LogisticKernel((i - rand) / h));
                         MainSeriesCollectionList?[2].Values.Add(new ObservablePoint(i, multiplyKoeff * kde));
                     }
                     break;
             }
         }
-        private static double GaussianKernel(double x) // Гауссово ядро
-        {
-            return Math.Exp((-1 * x * x) / 2) / Math.Sqrt(2 * Math.PI);
-        }
-        private static double EpanechnikovKernel(double x) // Епанечниково ядро
-        {
-            return Math.Abs(x) <= 1 ? 0.75 * (1 - x * x) : 0.0;
-        }
-        private static double LogisticKernel(double x) // Логистическое ядро
-        {
-            return 1 / (Math.Exp(x) + 2 + Math.Exp(-x));
-        }
+        
     }
 }
